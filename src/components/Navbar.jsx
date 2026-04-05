@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Sprout, Menu, X, ChevronRight } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Sprout, Menu, X, ChevronRight, LogOut, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/auth-context";
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -15,6 +16,8 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -23,6 +26,11 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => setMenuOpen(false), [location]);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/auth");
+  };
 
   return (
     <header
@@ -58,16 +66,31 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          <Link to="/auth">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-              Sign In
-            </Button>
-          </Link>
-          <Link to="/auth?tab=register">
-            <Button size="sm" className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-semibold gap-1.5">
-              Get Started <ChevronRight className="w-3.5 h-3.5" />
-            </Button>
-          </Link>
+          {user ? (
+            <>
+              <div className="flex items-center gap-2 rounded-full border border-border/60 bg-secondary/70 px-3 py-1.5 text-sm text-muted-foreground">
+                <UserCircle2 className="w-4 h-4 text-primary" />
+                <span>{user.full_name || user.email}</span>
+              </div>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground" onClick={handleLogout}>
+                <LogOut className="w-3.5 h-3.5" />
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link to="/auth">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  Sign In
+                </Button>
+              </Link>
+              <Link to="/auth?tab=register">
+                <Button size="sm" className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-semibold gap-1.5">
+                  Get Started <ChevronRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -94,12 +117,21 @@ export default function Navbar() {
             </Link>
           ))}
           <div className="flex gap-2 mt-2 pt-2 border-t border-border/50">
-            <Link to="/auth" className="flex-1">
-              <Button variant="outline" size="sm" className="w-full">Sign In</Button>
-            </Link>
-            <Link to="/auth?tab=register" className="flex-1">
-              <Button size="sm" className="w-full bg-gradient-primary text-primary-foreground">Get Started</Button>
-            </Link>
+            {user ? (
+              <Button variant="outline" size="sm" className="w-full gap-2" onClick={handleLogout}>
+                <LogOut className="w-3.5 h-3.5" />
+                Sign Out
+              </Button>
+            ) : (
+              <>
+                <Link to="/auth" className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full">Sign In</Button>
+                </Link>
+                <Link to="/auth?tab=register" className="flex-1">
+                  <Button size="sm" className="w-full bg-gradient-primary text-primary-foreground">Get Started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

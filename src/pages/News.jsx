@@ -1,94 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Calendar, ExternalLink, TrendingUp, Rss } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { apiRequest } from "@/lib/api";
 
 const categories = ["All", "Technology", "Policy", "Market", "Research", "Climate", "Export"];
-
-const news = [
-  {
-    id: 1,
-    title: "India Achieves Record Kharif Crop Production in 2024-25",
-    summary: "Government data reveals India's kharif crop output hit an all-time high with rice production exceeding 120 million tonnes, driven by favorable monsoon and precision farming adoption.",
-    category: "Policy",
-    date: "Feb 18, 2025",
-    readTime: "4 min",
-    tag: "trending",
-    emoji: "🌾",
-  },
-  {
-    id: 2,
-    title: "AI-Driven Soil Health Cards Now Available for 5 Crore Farmers",
-    summary: "Ministry of Agriculture launches upgraded digital soil health cards integrated with AI recommendations, enabling real-time crop advisory based on NPK analysis.",
-    category: "Technology",
-    date: "Feb 17, 2025",
-    readTime: "3 min",
-    tag: "new",
-    emoji: "🤖",
-  },
-  {
-    id: 3,
-    title: "Wheat Prices Surge 12% Amid Global Supply Concerns",
-    summary: "International wheat prices have risen sharply due to adverse weather in key producing regions. Indian farmers benefit from export opportunities as government lifts restrictions.",
-    category: "Market",
-    date: "Feb 15, 2025",
-    readTime: "5 min",
-    tag: "hot",
-    emoji: "📈",
-  },
-  {
-    id: 4,
-    title: "ICAR Releases New Climate-Resilient Rice Varieties for Eastern India",
-    summary: "Indian Council of Agricultural Research unveils 8 new flood-tolerant rice varieties capable of withstanding submergence up to 21 days, targeting 5 million hectares.",
-    category: "Research",
-    date: "Feb 14, 2025",
-    readTime: "6 min",
-    tag: null,
-    emoji: "🔬",
-  },
-  {
-    id: 5,
-    title: "Drone-Based Crop Monitoring Reduces Pesticide Use by 40%",
-    summary: "A study across Haryana and Punjab demonstrates that precision drone spraying significantly reduces chemical input while maintaining 95% pest control efficacy.",
-    category: "Technology",
-    date: "Feb 13, 2025",
-    readTime: "4 min",
-    tag: null,
-    emoji: "🚁",
-  },
-  {
-    id: 6,
-    title: "India's Pulses Export Grows 35% in Q3 FY25",
-    summary: "Strong global demand for Indian lentils and chickpeas drives record export figures. Southeast Asian and Middle Eastern markets account for 60% of the surge.",
-    category: "Export",
-    date: "Feb 12, 2025",
-    readTime: "3 min",
-    tag: null,
-    emoji: "🌍",
-  },
-  {
-    id: 7,
-    title: "Climate Change Threatens 40% of India's Agricultural Output by 2050",
-    summary: "A new study by IISc warns that rising temperatures and erratic monsoons could severely impact crop yields, urging adoption of climate-smart agriculture practices.",
-    category: "Climate",
-    date: "Feb 11, 2025",
-    readTime: "7 min",
-    tag: "important",
-    emoji: "⚠️",
-  },
-  {
-    id: 8,
-    title: "Maharashtra Launches Rs 5,000 Crore Smart Irrigation Project",
-    summary: "The Maharashtra government announces a massive micro-irrigation initiative covering 2 million hectares with drip and sprinkler systems subsidized at 70% for small farmers.",
-    category: "Policy",
-    date: "Feb 10, 2025",
-    readTime: "5 min",
-    tag: null,
-    emoji: "💧",
-  },
-];
 
 const tagColors = {
   trending: "bg-primary/15 text-primary border-primary/30",
@@ -100,8 +18,46 @@ const tagColors = {
 export default function News() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
 
-  const filtered = news.filter((n) => {
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadNews() {
+      setLoading(true);
+      setApiError("");
+      try {
+        const response = await apiRequest("/api/v1/model/news/");
+        const fetchedItems = Array.isArray(response?.items) ? response.items : [];
+        if (isMounted) {
+          if (fetchedItems.length > 0) {
+            setItems(fetchedItems);
+          } else {
+            setApiError("No news available at the moment. Please try again later.");
+            setItems([]);
+          }
+        }
+      } catch (error) {
+        if (isMounted) {
+          setApiError("Failed to load agriculture news. Please try again later.");
+          setItems([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadNews();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filtered = items.filter((n) => {
     const matchCat = activeCategory === "All" || n.category === activeCategory;
     const matchSearch = n.title.toLowerCase().includes(search.toLowerCase()) || n.summary.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
@@ -150,6 +106,18 @@ export default function News() {
             </div>
           </div>
 
+          {(loading || apiError) && (
+            <div className={`mb-6 rounded-xl border px-4 py-3 text-sm ${apiError ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-primary/30 bg-primary/10 text-primary"}`}>
+              {loading ? "Loading latest agriculture news..." : apiError}
+            </div>
+          )}
+
+          {!loading && items.length === 0 && !apiError && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">No news available. Please refresh later.</p>
+            </div>
+          )}
+
           {filtered.length > 0 && activeCategory === "All" && !search && (
             <div className="relative rounded-2xl overflow-hidden border border-primary/20 bg-gradient-card card-shadow mb-8 group">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none" />
@@ -168,9 +136,17 @@ export default function News() {
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{filtered[0].date}</span>
                       <span>{filtered[0].readTime} read</span>
-                      <Button size="sm" variant="ghost" className="ml-auto text-primary hover:bg-primary/10 gap-1 text-xs">
-                        Read More <ExternalLink className="w-3 h-3" />
-                      </Button>
+                      {filtered[0].url ? (
+                        <a href={filtered[0].url} target="_blank" rel="noreferrer" className="ml-auto">
+                          <Button size="sm" variant="ghost" className="text-primary hover:bg-primary/10 gap-1 text-xs">
+                            Read More <ExternalLink className="w-3 h-3" />
+                          </Button>
+                        </a>
+                      ) : (
+                        <Button size="sm" variant="ghost" className="ml-auto text-primary hover:bg-primary/10 gap-1 text-xs" disabled>
+                          Read More <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -201,7 +177,13 @@ export default function News() {
                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border/40">
                   <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{article.date}</span>
                   <span>{article.readTime} read</span>
-                  <ExternalLink className="w-3.5 h-3.5 group-hover:text-primary transition-colors" />
+                  {article.url ? (
+                    <a href={article.url} target="_blank" rel="noreferrer" className="group-hover:text-primary transition-colors">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  ) : (
+                    <ExternalLink className="w-3.5 h-3.5 group-hover:text-primary transition-colors" />
+                  )}
                 </div>
               </div>
             ))}

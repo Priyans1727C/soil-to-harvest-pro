@@ -5,14 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-
-const CROPS = [
-  { name: "Rice", confidence: 96, reason: "High humidity + acidic pH optimal", icon: "🌾", suitable: true },
-  { name: "Maize", confidence: 88, reason: "Good NPK balance, moderate moisture", icon: "🌽", suitable: true },
-  { name: "Wheat", confidence: 74, reason: "pH slightly low but manageable", icon: "🌿", suitable: true },
-  { name: "Cotton", confidence: 61, reason: "Rainfall may be insufficient", icon: "☁️", suitable: false },
-  { name: "Sugarcane", confidence: 55, reason: "Temperature acceptable, K low", icon: "🎋", suitable: false },
-];
+import { apiRequest } from "@/lib/api";
 
 const SHAP_FEATURES = [
   { feature: "Humidity", value: "+0.34", color: "text-primary", bar: 85 },
@@ -26,14 +19,104 @@ const SHAP_FEATURES = [
 
 const defaultValues = { N: 90, P: 42, K: 43, pH: 6.5, temperature: 25, humidity: 80, rainfall: 200 };
 
+const CROP_EMOJI = {
+  rice: "🌾",
+  maize: "🌽",
+  wheat: "🌿",
+  cotton: "☁️",
+  sugarcane: "🎋",
+  chickpea: "🫛",
+  kidneybeans: "🫘",
+  pigeonpeas: "🫛",
+  mothbeans: "🫘",
+  mungbean: "🫛",
+  blackgram: "🫘",
+  lentil: "🫘",
+  pomegranate: "🍎",
+  banana: "🍌",
+  mango: "🥭",
+  grapes: "🍇",
+  watermelon: "🍉",
+  muskmelon: "🍈",
+  apple: "🍏",
+  orange: "🍊",
+  papaya: "🧡",
+  coconut: "🥥",
+  coffee: "☕",
+  default: "🌱",
+};
+
+function toPercent(value) {
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) return 0;
+  if (numeric <= 1) return Math.round(numeric * 100);
+  return Math.round(numeric);
+}
+
+function buildCropReason(values, isTopMatch) {
+  const climateSummary = `Temp ${values.temperature}°C, humidity ${values.humidity}%, rainfall ${values.rainfall}mm`;
+  return isTopMatch
+    ? `Best overall fit for your soil and climate profile (${climateSummary}).`
+    : `Alternative fit based on your current parameter mix (${climateSummary}).`;
+}
+
 export default function Recommend() {
   const [values, setValues] = useState(defaultValues);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     setLoading(true);
-    setTimeout(() => { setResult(CROPS); setLoading(false); }, 2000);
+    setError("");
+
+    try {
+      const payload = {
+        N: values.N,
+        P: values.P,
+        K: values.K,
+        ph: values.pH,
+        temperature: values.temperature,
+        humidity: values.humidity,
+        rainfall: values.rainfall,
+      };
+
+      const response = await apiRequest("/api/v1/model/rc/", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      const topCropName = String(response?.recommended_crop || "Unknown");
+      const topConfidence = toPercent(response?.confidence);
+
+      const mappedTopCrop = {
+        name: topCropName,
+        confidence: topConfidence,
+        reason: buildCropReason(values, true),
+        icon: CROP_EMOJI[topCropName.toLowerCase()] || CROP_EMOJI.default,
+        suitable: true,
+      };
+
+      const mappedAlternatives = Array.isArray(response?.alternatives)
+        ? response.alternatives.map((alt) => {
+            const name = String(alt.crop || "Unknown");
+            return {
+              name,
+              confidence: toPercent(alt.confidence),
+              reason: buildCropReason(values, false),
+              icon: CROP_EMOJI[name.toLowerCase()] || CROP_EMOJI.default,
+              suitable: toPercent(alt.confidence) >= 60,
+            };
+          })
+        : [];
+
+      setResult([mappedTopCrop, ...mappedAlternatives]);
+    } catch (err) {
+      setResult(null);
+      setError(err instanceof Error ? err.message : "Could not get recommendation from server.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const setValue = (key, val) =>
@@ -134,6 +217,12 @@ export default function Recommend() {
                   <><Sprout className="w-4 h-4" />Recommend Crops</>
                 )}
               </Button>
+
+              {error && (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
             </div>
 
             {/* Results Panel */}

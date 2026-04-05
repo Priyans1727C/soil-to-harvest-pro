@@ -1,134 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Calendar, IndianRupee, Clock, CheckCircle, AlertCircle, ArrowRight, Filter, Landmark } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { apiRequest } from "@/lib/api";
 
 const schemeFilters = ["All", "Ongoing", "Upcoming", "Central", "State", "Subsidy", "Insurance"];
-
-const schemes = [
-  {
-    id: 1,
-    name: "PM-KISAN",
-    fullName: "Pradhan Mantri Kisan Samman Nidhi",
-    status: "Ongoing",
-    type: "Central",
-    category: "Subsidy",
-    amount: "₹6,000/year",
-    deadline: null,
-    launch: "Feb 2019",
-    description: "Direct income support of ₹6,000 per year to small and marginal farmer families, paid in three equal installments of ₹2,000.",
-    eligibility: "Landholding farmers with cultivable land up to 2 hectares",
-    benefits: ["Direct bank transfer", "No middlemen", "Auto-renewal annually"],
-    icon: "💰",
-  },
-  {
-    id: 2,
-    name: "PMFBY",
-    fullName: "Pradhan Mantri Fasal Bima Yojana",
-    status: "Ongoing",
-    type: "Central",
-    category: "Insurance",
-    amount: "Coverage up to ₹2L",
-    deadline: "Mar 31, 2025",
-    launch: "Jan 2016",
-    description: "Comprehensive crop insurance scheme providing financial support to farmers suffering crop loss/damage due to unforeseen events.",
-    eligibility: "All farmers growing notified crops in notified areas",
-    benefits: ["Low premium (2% kharif, 1.5% rabi)", "Full sum insured", "Use of technology for quick settlement"],
-    icon: "🛡️",
-  },
-  {
-    id: 3,
-    name: "RKVY 2.0",
-    fullName: "Rashtriya Krishi Vikas Yojana 2.0",
-    status: "Ongoing",
-    type: "Central",
-    category: "Subsidy",
-    amount: "₹10,433 Crore (2024-25)",
-    deadline: null,
-    launch: "Apr 2024",
-    description: "Revamped scheme to incentivize states to increase investment in agriculture and allied sectors with a focus on sustainable farming.",
-    eligibility: "State governments, farmer cooperatives, and FPOs",
-    benefits: ["Infrastructure development", "Technology adoption support", "Agro-processing promotion"],
-    icon: "🌱",
-  },
-  {
-    id: 4,
-    name: "PMKSY",
-    fullName: "PM Krishi Sinchai Yojana",
-    status: "Ongoing",
-    type: "Central",
-    category: "Subsidy",
-    amount: "₹93,068 Crore (5 years)",
-    deadline: null,
-    launch: "Jul 2015",
-    description: "Har Khet Ko Pani, More Crop Per Drop — expanding cultivable area under irrigation with assured supply and improved water use efficiency.",
-    eligibility: "Farmers with land under irrigation, water user groups",
-    benefits: ["Drip irrigation subsidy", "Micro irrigation support", "Watershed development"],
-    icon: "💧",
-  },
-  {
-    id: 5,
-    name: "NMAET",
-    fullName: "National Mission on Agricultural Extension & Technology",
-    status: "Upcoming",
-    type: "Central",
-    category: "Subsidy",
-    amount: "₹2,961 Crore",
-    deadline: "Apr 1, 2025",
-    launch: "Apr 2025 (Planned)",
-    description: "Revamped mission to strengthen extension services and ICT-enabled farm advisory to 50 million farmers through digital platforms.",
-    eligibility: "All registered farmers with Aadhaar-linked accounts",
-    benefits: ["AI-based crop advisory", "Drone training", "Digital literacy"],
-    icon: "📡",
-  },
-  {
-    id: 6,
-    name: "Agri Infrastructure Fund",
-    fullName: "Agriculture Infrastructure Fund",
-    status: "Ongoing",
-    type: "Central",
-    category: "Subsidy",
-    amount: "₹1 Lakh Crore",
-    deadline: "2032",
-    launch: "Aug 2020",
-    description: "Medium-long term debt financing facility for investment in viable projects for post-harvest management infrastructure and community farming assets.",
-    eligibility: "FPOs, PACS, agri-entrepreneurs, startups",
-    benefits: ["3% interest subvention", "Credit guarantee", "Long tenure loans"],
-    icon: "🏗️",
-  },
-  {
-    id: 7,
-    name: "Kisan Credit Card",
-    fullName: "Kisan Credit Card Scheme",
-    status: "Ongoing",
-    type: "Central",
-    category: "Subsidy",
-    amount: "Up to ₹3 Lakh @ 4%",
-    deadline: null,
-    launch: "1998 (Expanded 2020)",
-    description: "Credit support for farmers for their cultivation and allied activities including short term credit requirements and maintenance of farm assets.",
-    eligibility: "All farmers, SHGs, tenant farmers, oral lessees",
-    benefits: ["Revolving credit", "Minimal paperwork", "ATM-enabled cards"],
-    icon: "💳",
-  },
-  {
-    id: 8,
-    name: "eNAM",
-    fullName: "National Agriculture Market",
-    status: "Upcoming",
-    type: "Central",
-    category: "Subsidy",
-    amount: "Phase 3 Expansion",
-    deadline: "Jun 2025",
-    launch: "Phase 3 — Jun 2025",
-    description: "Unified online trading platform for agricultural commodities, connecting 1,361+ markets. Phase 3 expansion to add 200 new mandis with AI-based price discovery.",
-    eligibility: "All registered farmers and traders",
-    benefits: ["Better price discovery", "Transparent bidding", "Direct FPO access"],
-    icon: "🏪",
-  },
-];
 
 const statusColors = {
   Ongoing: "bg-primary/15 text-primary border-primary/30",
@@ -138,8 +16,46 @@ const statusColors = {
 export default function Schemes() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
 
-  const filtered = schemes.filter((s) => {
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSchemes() {
+      setLoading(true);
+      setApiError("");
+      try {
+        const response = await apiRequest("/api/v1/model/schemes/");
+        const fetchedItems = Array.isArray(response?.items) ? response.items : [];
+        if (isMounted) {
+          if (fetchedItems.length > 0) {
+            setItems(fetchedItems);
+          } else {
+            setApiError("No schemes available at the moment. Please try again later.");
+            setItems([]);
+          }
+        }
+      } catch (error) {
+        if (isMounted) {
+          setApiError("Failed to load government schemes. Please try again later.");
+          setItems([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadSchemes();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filtered = items.filter((s) => {
     const matchFilter =
       activeFilter === "All" ||
       s.status === activeFilter ||
@@ -172,9 +88,9 @@ export default function Schemes() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
             {[
-              { label: "Total Schemes", value: schemes.length, icon: "📋" },
-              { label: "Ongoing", value: schemes.filter(s => s.status === "Ongoing").length, icon: "✅" },
-              { label: "Upcoming", value: schemes.filter(s => s.status === "Upcoming").length, icon: "🔔" },
+              { label: "Total Schemes", value: items.length, icon: "📋" },
+              { label: "Ongoing", value: items.filter(s => s.status === "Ongoing").length, icon: "✅" },
+              { label: "Upcoming", value: items.filter(s => s.status === "Upcoming").length, icon: "🔔" },
               { label: "Total Outlay", value: "₹1L+ Cr", icon: "💰" },
             ].map((item) => (
               <div key={item.label} className="glass rounded-2xl p-4 text-center border-glow">
@@ -210,6 +126,18 @@ export default function Schemes() {
             </div>
           </div>
 
+          {(loading || apiError) && (
+            <div className={`mb-6 rounded-xl border px-4 py-3 text-sm ${apiError ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-primary/30 bg-primary/10 text-primary"}`}>
+              {loading ? "Loading latest agriculture schemes..." : apiError}
+            </div>
+          )}
+
+          {!loading && items.length === 0 && !apiError && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">No schemes available. Please refresh later.</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {filtered.map((scheme) => (
               <div key={scheme.id} className="group rounded-2xl bg-gradient-card border border-border/40 hover:border-primary/30 p-6 card-shadow hover:-translate-y-0.5 transition-all duration-300 flex flex-col">
@@ -221,7 +149,7 @@ export default function Schemes() {
                       <p className="text-xs text-muted-foreground">{scheme.fullName}</p>
                     </div>
                   </div>
-                  <span className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full border font-medium ${statusColors[scheme.status]}`}>
+                  <span className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full border font-medium ${statusColors[scheme.status] || statusColors.Ongoing}`}>
                     {scheme.status === "Ongoing"
                       ? <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3 inline" />{scheme.status}</span>
                       : <span className="flex items-center gap-1"><AlertCircle className="w-3 h-3 inline" />{scheme.status}</span>}
@@ -264,9 +192,17 @@ export default function Schemes() {
                   </div>
                 </div>
 
-                <Button size="sm" variant="outline" className="w-full border-border/60 hover:border-primary/50 hover:bg-primary/5 gap-1.5 text-sm mt-auto group-hover:text-primary transition-colors">
-                  Apply / Know More <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
+                {scheme.link ? (
+                  <a href={scheme.link} target="_blank" rel="noreferrer" className="w-full mt-auto">
+                    <Button size="sm" variant="outline" className="w-full border-border/60 hover:border-primary/50 hover:bg-primary/5 gap-1.5 text-sm group-hover:text-primary transition-colors">
+                      Apply / Know More <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </a>
+                ) : (
+                  <Button size="sm" variant="outline" className="w-full border-border/60 hover:border-primary/50 hover:bg-primary/5 gap-1.5 text-sm mt-auto group-hover:text-primary transition-colors" disabled>
+                    Apply / Know More <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>

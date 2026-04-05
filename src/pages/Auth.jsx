@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Sprout, Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import heroFarm from "@/assets/hero-farm.jpg";
+import { useAuth } from "@/context/auth-context";
 
 const benefits = [
   "AI-powered crop recommendations",
@@ -16,17 +17,61 @@ const benefits = [
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { login, register, user } = useAuth();
   const [tab, setTab] = useState(
     searchParams.get("tab") === "register" ? "register" : "login"
   );
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    if (searchParams.get("tab") === "register") {
+      setTab("register");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [navigate, user]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (tab === "register" && form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => setLoading(false), 2000);
+
+    try {
+      if (tab === "login") {
+        await login({ email: form.email, password: form.password });
+        navigate("/");
+        return;
+      }
+
+      await register({
+        email: form.email,
+        password: form.password,
+        full_name: form.name,
+      });
+      setSuccess("Account created. Check your email to verify your account.");
+      setTab("login");
+      setForm({ name: "", email: form.email, password: "", confirmPassword: "" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -111,6 +156,12 @@ export default function Auth() {
             </p>
           </div>
 
+          {(error || success) && (
+            <div className={`mb-4 rounded-xl border px-4 py-3 text-sm ${error ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-primary/30 bg-primary/10 text-primary"}`}>
+              {error || success}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {tab === "register" && (
               <div className="space-y-1.5">
@@ -171,7 +222,7 @@ export default function Auth() {
 
             {tab === "login" && (
               <div className="flex justify-end">
-                <a href="#" className="text-xs text-primary hover:underline">Forgot password?</a>
+                <Link to="/auth?tab=register" className="text-xs text-primary hover:underline">Create an account</Link>
               </div>
             )}
 
