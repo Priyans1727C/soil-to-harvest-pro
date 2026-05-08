@@ -17,6 +17,16 @@ const SHAP_FEATURES = [
   { feature: "Phosphorus (P)", value: "+0.06", color: "text-primary", bar: 15 },
 ];
 
+const FEATURE_NAMES_MAP = {
+  N: "Nitrogen (N)",
+  P: "Phosphorus (P)",
+  K: "Potassium (K)",
+  temperature: "Temperature",
+  humidity: "Humidity",
+  ph: "pH",
+  rainfall: "Rainfall",
+};
+
 const defaultValues = { N: 90, P: 42, K: 43, pH: 6.5, temperature: 25, humidity: 80, rainfall: 200 };
 
 const CROP_EMOJI = {
@@ -63,12 +73,14 @@ function buildCropReason(values, isTopMatch) {
 export default function Recommend() {
   const [values, setValues] = useState(defaultValues);
   const [result, setResult] = useState(null);
+  const [shap, setShap] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleAnalyze = async () => {
     setLoading(true);
     setError("");
+    setShap(null);
 
     try {
       const payload = {
@@ -110,9 +122,31 @@ export default function Recommend() {
           })
         : [];
 
+      // Process SHAP values from API
+      const apiShapValues = Array.isArray(response?.shap_values) ? response.shap_values : [];
+      if (apiShapValues.length > 0) {
+        const shapFeatures = apiShapValues.map((s) => {
+          const displayName = FEATURE_NAMES_MAP[s.feature] || s.feature;
+          const sval = s.value;
+          const isPositive = sval >= 0;
+          const absVal = Math.abs(sval);
+          // Normalize to percentage bar width (0-100)
+          const maxVal = Math.max(...apiShapValues.map((x) => Math.abs(x.value)), 0.5);
+          const barWidth = Math.round((absVal / maxVal) * 100);
+          return {
+            feature: displayName,
+            value: isPositive ? `+${sval.toFixed(2)}` : `${sval.toFixed(2)}`,
+            color: isPositive ? "text-primary" : "text-destructive",
+            bar: Math.min(barWidth, 100),
+          };
+        });
+        setShap(shapFeatures);
+      }
+
       setResult([mappedTopCrop, ...mappedAlternatives]);
     } catch (err) {
       setResult(null);
+      setShap(null);
       setError(err instanceof Error ? err.message : "Could not get recommendation from server.");
     } finally {
       setLoading(false);
@@ -280,9 +314,9 @@ export default function Recommend() {
                       <Info className="w-4 h-4 text-gold" /> SHAP Feature Importance
                       <span className="ml-auto text-xs bg-gold/10 text-gold px-2.5 py-1 rounded-full border border-gold/20">XAI</span>
                     </h3>
-                    <p className="text-xs text-muted-foreground mb-5">Why was Rice recommended? SHAP values explain each feature's contribution.</p>
+                    <p className="text-xs text-muted-foreground mb-5">Why was {result[0].name} recommended? SHAP values explain each feature's contribution.</p>
                     <div className="space-y-3">
-                      {SHAP_FEATURES.map((f) => (
+                      {(shap && shap.length > 0 ? shap : SHAP_FEATURES).map((f) => (
                         <div key={f.feature} className="flex items-center gap-3">
                           <span className="text-sm w-32 text-muted-foreground flex-shrink-0">{f.feature}</span>
                           <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
@@ -296,7 +330,7 @@ export default function Recommend() {
                       ))}
                     </div>
                     <p className="text-xs text-muted-foreground mt-4 p-3 bg-secondary/50 rounded-xl">
-                      <strong className="text-foreground">Interpretation:</strong> Positive SHAP values (green) push toward Rice recommendation, negative values (red) push against it.
+                      <strong className="text-foreground">Interpretation:</strong> Positive SHAP values (green) push toward {result[0].name} recommendation, negative values (red) push against it.
                     </p>
                   </div>
                 </>
