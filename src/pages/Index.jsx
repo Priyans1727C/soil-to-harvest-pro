@@ -41,10 +41,10 @@ const features = [
 ];
 
 const stats = [
-  { value: "99%+", label: "Accuracy Rate", icon: TrendingUp },
+  { value: "95%+", label: "Accuracy Rate", icon: TrendingUp },
   { value: "22", label: "Crop Types", icon: Leaf },
-  { value: "10K+", label: "Farmers Helped", icon: Users },
-  { value: "4.9★", label: "User Rating", icon: Star },
+  { value: "NA", label: "Farmers Helped", icon: Users },
+  { value: "NA", label: "User Rating", icon: Star },
 ];
 
 const steps = [

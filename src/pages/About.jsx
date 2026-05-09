@@ -5,10 +5,41 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 const team = [
-  { name: "Dr. Arjun Sharma", role: "Lead AI Researcher", avatar: "🧑‍🔬", expertise: "Ensemble ML, SHAP", affiliation: "IIT Bombay" },
-  { name: "Priya Nair", role: "ML Engineer", avatar: "👩‍💻", expertise: "XGBoost, Feature Engineering", affiliation: "BITS Pilani" },
-  { name: "Ravi Kumar", role: "Agri Domain Expert", avatar: "👨‍🌾", expertise: "Soil Science, Precision Agri", affiliation: "ICAR, Hyderabad" },
-  { name: "Sneha Patel", role: "Data Scientist", avatar: "👩‍🔬", expertise: "SMOTE, Model Interpretability", affiliation: "NIT Surat" },
+  { 
+    name: "Priyanshu Singh", 
+    role: "Backend Developer", 
+    avatar: "👨‍💻", 
+    expertise: "Data Analysis, Machine Learning", 
+    affiliation: "Lovely Professional University" 
+  },
+  { 
+    name: "Sudip Kumar Das", 
+    role: "Full Stack Developer", 
+    avatar: "👨‍💻", 
+    expertise: "React, Node.js, MERN Stack", 
+    affiliation: "Lovely Professional University" 
+  },
+  { 
+    name: "Utpal Bhunia", 
+    role: "ML Engineer", 
+    avatar: "👨‍💻", 
+    expertise: "Machine Learning, Model Training", 
+    affiliation: "Lovely Professional University" 
+  },
+  { 
+    name: "Susanta Gope", 
+    role: "Data Science Engineer", 
+    avatar: "👨‍💻", 
+    expertise: "Data Science, Visualization", 
+    affiliation: "Lovely Professional University" 
+  },
+  { 
+    name: "Dr. Baljinder Kaur", 
+    role: "AI/ML Expert", 
+    avatar: "👩‍🏫", 
+    expertise: "Artificial Intelligence, Deep Learning", 
+    affiliation: "Lovely Professional University" 
+  },
 ];
 
 const techStack = [
@@ -33,11 +64,11 @@ const parameters = [
 ];
 
 const milestones = [
-  { year: "2023", event: "Research initiated at IIT Bombay" },
-  { year: "Q1 2024", event: "Dataset compilation: 2,200+ records across 22 crops" },
-  { year: "Q2 2024", event: "SMOTE balancing & feature engineering complete" },
-  { year: "Q3 2024", event: "Ensemble models trained; 99.4% accuracy achieved" },
-  { year: "Q4 2024", event: "SHAP & LIME integration for XAI explanations" },
+  { year: "2025", event: "Research initiated at  LPU" },
+  { year: "Q1 2025", event: "Dataset compilation: 2,200 records across 22 crops" },
+  { year: "Q2 2025", event: "SMOTE balancing & feature engineering complete" },
+  { year: "Q3 2025", event: "Ensemble models trained; 95+% accuracy achieved" },
+  { year: "Q4 2025", event: "SHAP & LIME integration for XAI explanations" },
   { year: "2025", event: "CropSense AI platform launched publicly" },
 ];
 
